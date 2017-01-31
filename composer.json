@@ -1,0 +1,20 @@
+{
+    "name": "gevman/Yii2-file-manager",
+    "description": "File Manager Module for Yii2",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=5.4"
+    },
+    "authors": [
+        {
+            "name": "Gevorg Mansuryan",
+            "email": "gevorgmansuryan@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Gevman\\FileManager\\": "src/"
+        }
+    }
+}

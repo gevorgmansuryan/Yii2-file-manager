@@ -1,0 +1,9 @@
+/vendor
+/node_modules
+/.idea
+composer.phar
+composer.lock
+
+package.json
+gulpfile.js
+/react
