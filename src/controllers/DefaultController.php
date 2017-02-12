@@ -47,7 +47,7 @@ class DefaultController extends Controller
 		$this->view->registerJs(sprintf('var context = \'%s\';', Json::encode([
 			'id' => $this->module->id,
 			'ajaxUrl' => Url::to([sprintf('/%s/default', $this->module->id)]),
-			'uploadsUrl' =>Yii::getAlias(sprintf('@web/%s', $this->module->uploadFolder)),
+			'uploadsUrl' => Url::to([$this->module->uploadFolder], $this->module->returnFullPath),
 			'allowedExtensions' => $this->manager->getAllowedExtensions($token),
 			'token' => $token
 		])), View::POS_BEGIN);

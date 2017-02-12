@@ -13,6 +13,10 @@ class Module extends \yii\base\Module
 	 * @var string
 	 */
 	public $uploadFolder;
+	/**
+	 * @var boolean
+	 */
+	public $returnFullPath;
 
 	/**
 	 * @var array
