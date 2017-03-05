@@ -39,10 +39,7 @@ class DefaultController extends Controller
 
 	public function actionIndex($type = null)
 	{
-//		Yii::$app->cache->exists()
-
 		$token = $this->manager->generateToken($type);
-
 		$this->layout = 'main';
 		$this->view->registerJs(sprintf('var context = \'%s\';', Json::encode([
 			'id' => $this->module->id,
@@ -62,6 +59,11 @@ class DefaultController extends Controller
 			return sprintf('Files with `%s` type are not allowed!', $file->extension);
 		}
 		return $this->manager->save($file);
+	}
+
+	public function actionResize()
+	{
+		$this->manager->resize(Yii::$app->request->post());
 	}
 
 	public function actionPage($offset = 0)

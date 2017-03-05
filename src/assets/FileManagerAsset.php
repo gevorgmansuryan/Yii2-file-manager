@@ -7,7 +7,7 @@ use yii\web\AssetBundle;
 class FileManagerAsset extends AssetBundle
 {
 	public $publishOptions = [
-		'forceCopy' => YII_ENV_DEV,
+		'forceCopy' => true,
 	];
 
 	public $sourcePath = __DIR__.'/files';

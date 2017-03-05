@@ -2,6 +2,8 @@
 
 namespace Gevman\FileManager\components;
 
+use Imagine\Image\Box;
+use Imagine\Image\ManipulatorInterface;
 use Yii;
 use Gevman\FileManager\Module;
 use yii\base\Object;
@@ -10,6 +12,8 @@ use yii\helpers\FileHelper;
 use yii\helpers\Json;
 use yii\web\UploadedFile;
 use DirectoryIterator;
+use Exception;
+use yii\imagine\Image;
 
 class Manager extends Object
 {
@@ -31,8 +35,18 @@ class Manager extends Object
 		$files = [];
 		$iterator = new DirectoryIterator(Yii::getAlias(sprintf('@webroot/%s', $this->module->uploadFolder)));
 		foreach ($iterator as $file) {
-			if ($file->isFile() && $file->getBasename()[0] != '.') {
-				$files[uniqid($file->getMTime())] = $file->getFilename();
+			if ($file->isFile() && !$file->isDot()) {
+				try {
+					$size = Image::frame(Yii::getAlias(sprintf('@webroot/%s/%s', $this->module->uploadFolder, $file->getFilename())), 0)->getSize();
+					$size = sprintf('%sx%s', $size->getHeight(), $size->getWidth());
+				} catch (Exception $e) {
+					$size = null;
+				}
+				$files[uniqid($file->getMTime())] = [
+					'fileName' => $file->getFilename(),
+					'fileSize' => round($file->getSize() / 1024, 1),
+					'imageSize' => $size
+				];
 			}
 		}
 		krsort($files);
@@ -78,6 +92,22 @@ class Manager extends Object
 		);
 		$file->saveAs(Yii::getAlias(sprintf('@webroot/%s/%s', $this->module->uploadFolder, $name)));
 		return Yii::getAlias(sprintf('@web/%s/%s', $this->module->uploadFolder, $name));
+	}
+
+	public function resize($data)
+	{
+		$original = Yii::getAlias(sprintf('@webroot/%s/%s', $this->module->uploadFolder, $data['image']));
+		$extension = pathinfo($original, PATHINFO_EXTENSION);
+		$tempName = tempnam(sys_get_temp_dir(), $this->module->id);
+		$image = Image::thumbnail($original, $data['width'], $data['height'], ManipulatorInterface::THUMBNAIL_INSET);
+		file_put_contents($tempName, $image->get($extension));
+
+		$name = sprintf(
+			'%s.%s',
+			sha1_file($tempName),
+			$extension
+		);
+		rename($tempName, Yii::getAlias(sprintf('@webroot/%s/%s', $this->module->uploadFolder, $name)));
 	}
 
 	public function getGallery($offset)
