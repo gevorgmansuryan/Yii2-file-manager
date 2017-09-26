@@ -49,6 +49,10 @@ class Module extends \yii\base\Module
 	public function init()
 	{
 		parent::init();
+        Yii::$app->urlManager->addRules([
+            ['class' => 'yii\web\UrlRule', 'pattern' => $this->id, 'route' => $this->id . '/default/index'],
+            ['class' => 'yii\web\UrlRule', 'pattern' => $this->id . '/<controller:[\w\-]+>/<action:[\w\-]+>', 'route' => $this->id . '/<controller>/<action>'],
+        ]);
 		$this->assetBundle = $this->assetBundle ? new $this->assetBundle : new FileManagerAsset;
 		if ($this->cacheComponent) {
 			$this->cache = Yii::$app->get($this->cacheComponent);
