@@ -54,11 +54,9 @@ class DefaultController extends Controller
 	public function actionUpload($token)
 	{
 		$file = UploadedFile::getInstanceByName('file');
-		if ($this->manager->hasErrors($file, $token)) {
+		if ($error = $this->manager->hasErrors($file, $token)) {
 			Yii::$app->getResponse()->statusCode = 400;
-            return Yii::t('yii', 'Only files with these extensions are allowed: {extensions}.', [
-                'extensions' => implode(', ', $this->manager->getAllowedExtensions($token))
-            ]);
+			return $error;
 		}
 		return $this->manager->save($file);
 	}

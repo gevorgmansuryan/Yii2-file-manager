@@ -10,6 +10,7 @@ use yii\base\Object;
 use yii\helpers\ArrayHelper;
 use yii\helpers\FileHelper;
 use yii\helpers\Json;
+use yii\validators\FileValidator;
 use yii\web\UploadedFile;
 use DirectoryIterator;
 use Exception;
@@ -76,12 +77,30 @@ class Manager extends Object
 		return $token;
 	}
 
-	public function hasErrors(UploadedFile $file, $token)
-	{
-		$fileExtensions = FileHelper::getExtensionsByMimeType(FileHelper::getMimeType($file->tempName));
-		$matchedExtensions = array_intersect($this->getAllowedExtensions($token), $fileExtensions);
-		return empty($matchedExtensions);
-	}
+    public function hasErrors(UploadedFile $file, $token)
+    {
+        $systemDefaultMaxSize = function() {
+            $value = trim(ini_get('post_max_size'));
+            $modifier = strtolower($value[strlen($value)-1]);
+            switch($modifier) {
+                case 'g':
+                    $value *= 1024;
+                case 'm':
+                    $value *= 1024;
+                case 'k':
+                    $value *= 1024;
+            }
+            return $value;
+        };
+
+        $validator = new FileValidator();
+        $validator->maxSize = $systemDefaultMaxSize();
+        $validator->extensions = $this->getAllowedExtensions($token);
+        $validator->uploadRequired = true;
+        $validator->validate($file, $error);
+
+        return $error;
+    }
 
 	public function save(UploadedFile $file)
 	{
