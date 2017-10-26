@@ -81,16 +81,17 @@ class Manager extends Object
     {
         $systemDefaultMaxSize = function() {
             $value = trim(ini_get('post_max_size'));
+            $size = intval($value);
             $modifier = strtolower($value[strlen($value)-1]);
             switch($modifier) {
                 case 'g':
-                    $value *= 1024;
+                    $size *= 1024;
                 case 'm':
-                    $value *= 1024;
+                    $size *= 1024;
                 case 'k':
-                    $value *= 1024;
+                    $size *= 1024;
             }
-            return $value;
+            return $size;
         };
 
         $validator = new FileValidator();
