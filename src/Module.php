@@ -43,6 +43,11 @@ class Module extends \yii\base\Module
 	 */
 	public $assetBundle;
 
+    /**
+     * @var callable
+     */
+	public $beforeAction;
+
 	/**
 	 * @inheritdoc
 	 */
@@ -58,4 +63,14 @@ class Module extends \yii\base\Module
 			$this->cache = Yii::$app->get($this->cacheComponent);
 		}
 	}
+
+	public function beforeAction($action)
+    {
+        $valid =  parent::beforeAction($action);
+        if (is_callable($this->beforeAction)) {
+            call_user_func($this->beforeAction);
+        }
+
+        return $valid;
+    }
 }

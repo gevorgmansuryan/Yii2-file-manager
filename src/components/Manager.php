@@ -36,7 +36,7 @@ class Manager extends Object
 		$files = [];
 		$iterator = new DirectoryIterator(Yii::getAlias(sprintf('@webroot/%s', $this->module->uploadFolder)));
 		foreach ($iterator as $file) {
-			if ($file->isFile() && !$file->isDot()) {
+            if ($file->isFile() && !$file->isDot() && $file->getFilename() != '.gitignore') {
 				try {
 					$size = Image::frame(Yii::getAlias(sprintf('@webroot/%s/%s', $this->module->uploadFolder, $file->getFilename())), 0)->getSize();
 					$size = sprintf('%sx%s', $size->getHeight(), $size->getWidth());
