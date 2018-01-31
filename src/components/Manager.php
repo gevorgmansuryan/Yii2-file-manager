@@ -6,7 +6,7 @@ use Imagine\Image\Box;
 use Imagine\Image\ManipulatorInterface;
 use Yii;
 use Gevman\FileManager\Module;
-use yii\base\Object;
+use yii\base\BaseObject;
 use yii\helpers\ArrayHelper;
 use yii\helpers\FileHelper;
 use yii\helpers\Json;
@@ -16,7 +16,7 @@ use DirectoryIterator;
 use Exception;
 use yii\imagine\Image;
 
-class Manager extends Object
+class Manager extends BaseObject
 {
 	/**
 	 * @var Module
