@@ -132,6 +132,6 @@ class Manager extends BaseObject
 
 	public function getGallery($offset)
 	{
-		return array_slice($this->getFiles($offset == 0), $offset , 100);
+		return array_slice($this->getFiles(YII_DEBUG), $offset , 100);
 	}
 }
