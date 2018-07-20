@@ -66,8 +66,8 @@ class DefaultController extends Controller
 		$this->manager->resize(Yii::$app->request->post());
 	}
 
-	public function actionPage($offset = 0)
-	{
-		return Json::encode($this->manager->getGallery($offset));
-	}
+    public function actionPage($offset = 0)
+    {
+        return Json::encode($this->manager->getFiles($offset, $this->module->pageSize));
+    }
 }

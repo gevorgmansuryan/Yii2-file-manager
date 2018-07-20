@@ -50,6 +50,11 @@ class Module extends \yii\base\Module implements BootstrapInterface
      */
     public $beforeAction;
 
+    /**
+     * @var int Listing Page Size
+     */
+    public $pageSize = 100;
+
     public function getControllerPath()
     {
         return realpath(__DIR__ . '/commands');
