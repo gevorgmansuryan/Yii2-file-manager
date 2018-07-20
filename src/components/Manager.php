@@ -7,6 +7,7 @@ use Imagine\Image\ManipulatorInterface;
 use Yii;
 use Gevman\FileManager\Module;
 use yii\base\BaseObject;
+use yii\console\Application;
 use yii\helpers\ArrayHelper;
 use yii\helpers\FileHelper;
 use yii\helpers\Json;
@@ -15,6 +16,7 @@ use yii\web\UploadedFile;
 use DirectoryIterator;
 use Exception;
 use yii\imagine\Image;
+use yii\helpers\Console;
 
 class Manager extends BaseObject
 {
@@ -40,14 +42,23 @@ class Manager extends BaseObject
         return $size;
     }
 
-	private function getFiles($noCache = false)
-	{
-		if ($this->module->cache && $this->module->cache->exists($this->module->id) && !$noCache) {
-			return $this->module->cache->get($this->module->id);
-		}
-		$files = [];
-		$iterator = new DirectoryIterator(Yii::getAlias(sprintf('@webroot/%s', $this->module->uploadFolder)));
-		foreach ($iterator as $file) {
+    public function getFiles($noCache = false)
+    {
+        if ($this->module->cache && $this->module->cache->exists($this->module->id) && !$noCache) {
+            return $this->module->cache->get($this->module->id);
+        }
+        $files = [];
+        $iterator = new DirectoryIterator(Yii::getAlias(sprintf('@webroot/%s', $this->module->uploadFolder)));
+        $total = $iterator->getSize();
+
+        if (Yii::$app instanceof Application) {
+            Console::startProgress(0, $total, 'Indexing files: ', false);
+        }
+
+        foreach ($iterator as $key => $file) {
+            if (Yii::$app instanceof Application) {
+                Console::updateProgress($key, $total);
+            }
             if ($file->isFile() && !$file->isDot() && $file->getFilename() != '.gitignore') {
                 if ($this->module->cache) {
                     $size = $this->module->cache->getOrSet(sprintf('%s-file-%s-info', $this->module->id, $file->getFilename()), function() use ($file) {
@@ -57,20 +68,23 @@ class Manager extends BaseObject
                     $size = $this->getImagesize($file);
                 }
 
-				$files[uniqid($file->getMTime())] = [
-					'fileName' => $file->getFilename(),
-					'fileSize' => round($file->getSize() / 1024, 1),
-					'imageSize' => $size
-				];
-			}
-		}
-		krsort($files);
-		$files = array_values($files);
-		if ($this->module->cache) {
-			$this->module->cache->set($this->module->id, $files);
-		}
-		return $files;
-	}
+                $files[uniqid($file->getMTime())] = [
+                    'fileName' => $file->getFilename(),
+                    'fileSize' => round($file->getSize() / 1024, 1),
+                    'imageSize' => $size
+                ];
+            }
+        }
+        if (Yii::$app instanceof Application) {
+            Console::endProgress("done." . PHP_EOL);
+        }
+        krsort($files);
+        $files = array_values($files);
+        if ($this->module->cache) {
+            $this->module->cache->set($this->module->id, $files);
+        }
+        return $files;
+    }
 
 	public function generateToken($type)
 	{
