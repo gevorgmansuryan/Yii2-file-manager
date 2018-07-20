@@ -28,6 +28,18 @@ class Manager extends BaseObject
 		return Yii::$app->session->get($token);
 	}
 
+    private function getImagesize($file)
+    {
+        try {
+            $size = Image::frame(Yii::getAlias(sprintf('@webroot/%s/%s', $this->module->uploadFolder, $file->getFilename())), 0)->getSize();
+            $size = sprintf('%sx%s', $size->getHeight(), $size->getWidth());
+        } catch (Exception $e) {
+            $size = null;
+        }
+
+        return $size;
+    }
+
 	private function getFiles($noCache = false)
 	{
 		if ($this->module->cache && $this->module->cache->exists($this->module->id) && !$noCache) {
@@ -37,12 +49,14 @@ class Manager extends BaseObject
 		$iterator = new DirectoryIterator(Yii::getAlias(sprintf('@webroot/%s', $this->module->uploadFolder)));
 		foreach ($iterator as $file) {
             if ($file->isFile() && !$file->isDot() && $file->getFilename() != '.gitignore') {
-				try {
-					$size = Image::frame(Yii::getAlias(sprintf('@webroot/%s/%s', $this->module->uploadFolder, $file->getFilename())), 0)->getSize();
-					$size = sprintf('%sx%s', $size->getHeight(), $size->getWidth());
-				} catch (Exception $e) {
-					$size = null;
-				}
+                if ($this->module->cache) {
+                    $size = $this->module->cache->getOrSet(sprintf('%s-file-%s-info', $this->module->id, $file->getFilename()), function() use ($file) {
+                        return $this->getImagesize($file);
+                    }, 60 * 60 * 24 * 31);
+                } else {
+                    $size = $this->getImagesize($file);
+                }
+
 				$files[uniqid($file->getMTime())] = [
 					'fileName' => $file->getFilename(),
 					'fileSize' => round($file->getSize() / 1024, 1),
