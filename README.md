@@ -24,3 +24,23 @@ add this to web.php
     /*, other*
 ],
 ```
+
+there is also console command for automating file thumb indexing
+
+in console config set @webroot alias first after add this to config file
+
+```php
+'bootstrap' => [/* other, */'file-manager'/*, other*/],
+// and
+'modules' => [
+    /* other, */
+    'file-manager' => [
+        'class' => Gevman\FileManager\Module::class,
+        'returnFullPath' => true,
+        'uploadFolder' => '/uploads',
+        'cacheComponent' => 'cache',
+    ],
+    /*, other*
+],
+
+after run `php yii file-manager/index-files`

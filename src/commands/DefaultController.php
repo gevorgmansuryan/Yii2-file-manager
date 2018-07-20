@@ -1,13 +1,6 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: Gev
- * Date: 07/20/2018
- * Time: 20:52
- */
 
 namespace Gevman\FileManager\commands;
-
 
 use yii\console\Controller;
 use Gevman\FileManager\components\Manager;
