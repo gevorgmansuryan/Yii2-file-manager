@@ -14,7 +14,7 @@ class DefaultController extends Controller
     public function actionIndexFiles()
     {
         $manager = new Manager(['module' => $this->module]);
-        $manager->getFiles(true);
+        $manager->indexAll();
     }
 
     public function getUniqueID()

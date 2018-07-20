@@ -77,6 +77,8 @@ class Module extends \yii\base\Module implements BootstrapInterface
     {
         parent::init();
 
+        $this->uploadFolder = trim($this->uploadFolder, '/');
+
         if (Yii::$app instanceof WebApplication) {
             $this->assetBundle = $this->assetBundle ? new $this->assetBundle : new FileManagerAsset;
         }

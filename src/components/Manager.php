@@ -20,90 +20,96 @@ use yii\helpers\Console;
 
 class Manager extends BaseObject
 {
-	/**
-	 * @var Module
-	 */
-	public $module;
+    /**
+     * @var Module
+     */
+    public $module;
 
-	public function getAllowedExtensions($token)
-	{
-		return Yii::$app->session->get($token);
-	}
+    public function getAllowedExtensions($token)
+    {
+        return Yii::$app->session->get($token);
+    }
 
-    private function getImagesize($file)
+    private function getListing()
+    {
+        $listing = [];
+        $iterator = new DirectoryIterator(Yii::getAlias(sprintf('@webroot/%s', $this->module->uploadFolder)));
+
+        foreach ($iterator as $key => $file) {
+            if ($file->isFile() && !$file->isDot() && $file->getFilename() != '.gitignore') {
+                $listing[uniqid($file->getMTime())] = $file->getPathname();
+            }
+        }
+        krsort($listing);
+
+        return array_values($listing);
+    }
+
+    private function getFileInfo($filename)
     {
         try {
-            $size = Image::frame(Yii::getAlias(sprintf('@webroot/%s/%s', $this->module->uploadFolder, $file->getFilename())), 0)->getSize();
+            $size = Image::frame($filename, 0)->getSize();
             $size = sprintf('%sx%s', $size->getHeight(), $size->getWidth());
         } catch (Exception $e) {
             $size = null;
         }
 
-        return $size;
+        return [
+            'fileName' => basename($filename),
+            'fileSize' => round(filesize($filename) / 1024, 1),
+            'imageSize' => $size
+        ];
     }
 
-    public function getFiles($noCache = false)
+    public function indexAll()
     {
-        if ($this->module->cache && $this->module->cache->exists($this->module->id) && !$noCache) {
-            return $this->module->cache->get($this->module->id);
+        $listing = $this->getListing();
+        $total = count($listing);
+
+        Console::startProgress(0, $total, 'Indexing files: ', false);
+
+        foreach ($listing as $key => $file) {
+            Console::updateProgress($key, $total);
+            $this->module->cache->getOrSet(sprintf('%s-file-%s-info', $this->module->id, $file), function() use ($file) {
+                return $this->getFileInfo($file);
+            }, 60 * 60 * 24 * 31);
         }
+        Console::endProgress("done." . PHP_EOL);
+    }
+
+    public function getFiles($offset, $limit)
+    {
+        $listing = array_slice($this->getListing(), $offset , $limit);
+
         $files = [];
-        $iterator = new DirectoryIterator(Yii::getAlias(sprintf('@webroot/%s', $this->module->uploadFolder)));
-        $total = $iterator->getSize();
 
-        if (Yii::$app instanceof Application) {
-            Console::startProgress(0, $total, 'Indexing files: ', false);
+        foreach ($listing as $key => $file) {
+            $files[] = $this->module->cache->getOrSet(sprintf('%s-file-%s-info', $this->module->id, $file), function() use ($file) {
+                return $this->getFileInfo($file);
+            }, 60 * 60 * 24 * 31);
         }
 
-        foreach ($iterator as $key => $file) {
-            if (Yii::$app instanceof Application) {
-                Console::updateProgress($key, $total);
-            }
-            if ($file->isFile() && !$file->isDot() && $file->getFilename() != '.gitignore') {
-                if ($this->module->cache) {
-                    $size = $this->module->cache->getOrSet(sprintf('%s-file-%s-info', $this->module->id, $file->getFilename()), function() use ($file) {
-                        return $this->getImagesize($file);
-                    }, 60 * 60 * 24 * 31);
-                } else {
-                    $size = $this->getImagesize($file);
-                }
-
-                $files[uniqid($file->getMTime())] = [
-                    'fileName' => $file->getFilename(),
-                    'fileSize' => round($file->getSize() / 1024, 1),
-                    'imageSize' => $size
-                ];
-            }
-        }
-        if (Yii::$app instanceof Application) {
-            Console::endProgress("done." . PHP_EOL);
-        }
-        krsort($files);
-        $files = array_values($files);
-        if ($this->module->cache) {
-            $this->module->cache->set($this->module->id, $files);
-        }
         return $files;
     }
 
-	public function generateToken($type)
-	{
-		$allowedExtensions = [];
-		if ($type) {
-			$allowedExtensions = $this->module->allowedExtensions[$type];
-		} elseif (isset($this->module->allowedExtensions[0])) {
-			$allowedExtensions = $this->module->allowedExtensions;
-		} else {
-			foreach ($this->module->allowedExtensions as $group) {
-				$allowedExtensions = ArrayHelper::merge($allowedExtensions, $group);
-			}
-		}
-		$token = md5(Json::encode($allowedExtensions));
-		if (!Yii::$app->session->has($token)) {
-			Yii::$app->session->set($token, $allowedExtensions);
-		}
-		return $token;
-	}
+    public function generateToken($type)
+    {
+        $allowedExtensions = [];
+        if ($type) {
+            $allowedExtensions = $this->module->allowedExtensions[$type];
+        } elseif (isset($this->module->allowedExtensions[0])) {
+            $allowedExtensions = $this->module->allowedExtensions;
+        } else {
+            foreach ($this->module->allowedExtensions as $group) {
+                $allowedExtensions = ArrayHelper::merge($allowedExtensions, $group);
+            }
+        }
+        $token = md5(Json::encode($allowedExtensions));
+        if (!Yii::$app->session->has($token)) {
+            Yii::$app->session->set($token, $allowedExtensions);
+        }
+        return $token;
+    }
 
     public function hasErrors(UploadedFile $file, $token)
     {
@@ -131,35 +137,30 @@ class Manager extends BaseObject
         return $error;
     }
 
-	public function save(UploadedFile $file)
-	{
-		$name = sprintf(
-			'%s.%s',
-			sha1_file($file->tempName),
-			$file->extension
-		);
-		$file->saveAs(Yii::getAlias(sprintf('@webroot/%s/%s', $this->module->uploadFolder, $name)));
-		return Yii::getAlias(sprintf('@web/%s/%s', $this->module->uploadFolder, $name));
-	}
+    public function save(UploadedFile $file)
+    {
+        $name = sprintf(
+            '%s.%s',
+            sha1_file($file->tempName),
+            $file->extension
+        );
+        $file->saveAs(Yii::getAlias(sprintf('@webroot/%s/%s', $this->module->uploadFolder, $name)));
+        return Yii::getAlias(sprintf('@web/%s/%s', $this->module->uploadFolder, $name));
+    }
 
-	public function resize($data)
-	{
-		$original = Yii::getAlias(sprintf('@webroot/%s/%s', $this->module->uploadFolder, $data['image']));
-		$extension = pathinfo($original, PATHINFO_EXTENSION);
-		$tempName = tempnam(sys_get_temp_dir(), $this->module->id);
-		$image = Image::thumbnail($original, $data['width'], $data['height'], ManipulatorInterface::THUMBNAIL_INSET);
-		file_put_contents($tempName, $image->get($extension));
+    public function resize($data)
+    {
+        $original = Yii::getAlias(sprintf('@webroot/%s/%s', $this->module->uploadFolder, $data['image']));
+        $extension = pathinfo($original, PATHINFO_EXTENSION);
+        $tempName = tempnam(sys_get_temp_dir(), $this->module->id);
+        $image = Image::thumbnail($original, $data['width'], $data['height'], ManipulatorInterface::THUMBNAIL_INSET);
+        file_put_contents($tempName, $image->get($extension));
 
-		$name = sprintf(
-			'%s.%s',
-			sha1_file($tempName),
-			$extension
-		);
-		rename($tempName, Yii::getAlias(sprintf('@webroot/%s/%s', $this->module->uploadFolder, $name)));
-	}
-
-	public function getGallery($offset)
-	{
-		return array_slice($this->getFiles(YII_DEBUG), $offset , 100);
-	}
+        $name = sprintf(
+            '%s.%s',
+            sha1_file($tempName),
+            $extension
+        );
+        rename($tempName, Yii::getAlias(sprintf('@webroot/%s/%s', $this->module->uploadFolder, $name)));
+    }
 }
