@@ -47,10 +47,9 @@ class Manager extends BaseObject
 
     private function getFileInfo($filename)
     {
-        try {
-            $size = Image::frame($filename, 0)->getSize();
-            $size = sprintf('%sx%s', $size->getHeight(), $size->getWidth());
-        } catch (Exception $e) {
+        if ($size = @getimagesize($filename)) {
+            $size = sprintf('%sx%s', $size[1], $size[0]);
+        } else {
             $size = null;
         }
 
